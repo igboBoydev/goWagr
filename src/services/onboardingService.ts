@@ -6,6 +6,7 @@ import Users from "../models/Users";
 import VerificationTokens from "../models/VerificationTokens";
 import moment from "moment";
 import Wallet from "../models/Wallet";
+import Transactions from "../models/Transactions";
 
 export class OnboardingService extends BaseController {
   public createAccount = async (data: ICreateUser) => {
@@ -44,8 +45,6 @@ export class OnboardingService extends BaseController {
       password: bcrypt.hashSync(data.password),
     });
 
-    console.log("kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk");
-
     if (createUser) {
       let phone_code = this.generateRandomId(6);
       let email_code = this.generateRandomId(6);
@@ -54,10 +53,17 @@ export class OnboardingService extends BaseController {
         account_num: this.generateRandomId(10),
         user_id: createUser.id,
         account_name: "John Doe",
-        balance: 0.0,
+        balance: 1000.0,
       });
 
-      console.log("jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj");
+      await Transactions.create({
+        uuid: uuidv4(),
+        amount: 100,
+        user_id: createUser.id,
+        transfer_type: "debit",
+        desc: "test fund",
+        status: "success",
+      });
 
       await VerificationTokens.create({
         uuid: uuidv4(),
@@ -82,7 +88,6 @@ export class OnboardingService extends BaseController {
           .format("YYYY-MM-DD HH:mm:ss"),
       });
 
-      console.log("================================");
       return {
         uuid: createUser.uuid,
         message:
@@ -265,8 +270,6 @@ export class OnboardingService extends BaseController {
       };
     }
 
-    console.log("9999999999999999999999999999999999999999999");
-
     if (tokenCheck.trial_count === 3) {
       await VerificationTokens.create({
         uuid: uuidv4(),
@@ -285,10 +288,6 @@ export class OnboardingService extends BaseController {
         code: 404,
       };
     }
-
-    console.log(
-      "Ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp"
-    );
 
     if (this.isDatePast(tokenCheck.expiry_duration)) {
       let email_code = this.generateRandomId(6);
@@ -310,8 +309,6 @@ export class OnboardingService extends BaseController {
         code: 502,
       };
     }
-
-    console.log("oooooooooooooooooooooooooooooooo");
 
     await VerificationTokens.update(
       { is_used: 1, is_verified: 1 },
