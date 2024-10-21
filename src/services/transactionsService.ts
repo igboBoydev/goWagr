@@ -5,67 +5,85 @@ import { sequelize } from "../database/postgresDB";
 import Users from "../models/Users";
 import Wallet from "../models/Wallet";
 import ProcessPaymentJob from "../Queues/initializePayment";
+import { redis } from "../";
 
 export class transactionsService extends BaseController {
   public checkMyBalance = async (id: number) => {
     console.log({ id });
 
-    let num: number = +id;
-    let user = await Users.findOne({ where: { id: num } });
+    let cachedData = await redis.get(id);
+    console.log("llllllllllllllllllllllllllllllllllllll");
 
-    if (!user) {
+    if (!cachedData) {
+      console.log("kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk");
+      let num: number = +id;
+      let user = await Users.findOne({ where: { id: num } });
+
+      if (!user) {
+        return {
+          code: 404,
+          message: "User not found",
+        };
+      }
+      const totalCredit = await Transactions.findOne({
+        where: { user_id: user.id, transfer_type: "credit" },
+        attributes: [
+          [sequelize.fn("SUM", sequelize.col("amount")), "totalAmount"],
+        ],
+      });
+      const totalDebit = await Transactions.findOne({
+        where: { user_id: user.id, transfer_type: "debit" },
+        attributes: [
+          [sequelize.fn("SUM", sequelize.col("amount")), "totalAmount"],
+        ],
+      });
+
+      console.log({
+        totalCredit: totalCredit.dataValues.totalAmount,
+        totalDebit: totalDebit.dataValues.totalAmount,
+      });
+
+      let balance;
+
+      if (
+        totalCredit.dataValues.totalAmount === null ||
+        totalCredit.dataValues.totalAmount === null
+      ) {
+        balance = 0;
+      } else {
+        balance =
+          totalDebit.dataValues.totalAmount +
+          totalCredit.dataValues.totalAmount;
+      }
+      let details = {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        gender: user.gender,
+        phone: user.phone,
+        email: user.email,
+        is_email_verified: user.is_email_verified,
+        is_phone_verified: user.is_phone_verified,
+        is_locked: user.is_locked,
+        referer_id: user.referer_id,
+        balance,
+      };
+
+      await redis.set(id, JSON.stringify(details), "EX", 60 * 60);
+
       return {
-        code: 404,
-        message: "User not found",
+        code: 200,
+        message: "success",
+        data: details,
+      };
+    } else {
+      console.log("jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj");
+
+      return {
+        code: 200,
+        message: "success",
+        data: JSON.parse(cachedData),
       };
     }
-    const totalCredit = await Transactions.findOne({
-      where: { user_id: user.id, transfer_type: "credit" },
-      attributes: [
-        [sequelize.fn("SUM", sequelize.col("amount")), "totalAmount"],
-      ],
-    });
-    const totalDebit = await Transactions.findOne({
-      where: { user_id: user.id, transfer_type: "debit" },
-      attributes: [
-        [sequelize.fn("SUM", sequelize.col("amount")), "totalAmount"],
-      ],
-    });
-
-    console.log({
-      totalCredit: totalCredit.dataValues.totalAmount,
-      totalDebit: totalDebit.dataValues.totalAmount,
-    });
-
-    let balance;
-
-    if (
-      totalCredit.dataValues.totalAmount === null ||
-      totalCredit.dataValues.totalAmount === null
-    ) {
-      balance = 0;
-    } else {
-      balance =
-        totalDebit.dataValues.totalAmount + totalCredit.dataValues.totalAmount;
-    }
-    let details = {
-      firstName: user.firstName,
-      lastName: user.lastName,
-      gender: user.gender,
-      phone: user.phone,
-      email: user.email,
-      is_email_verified: user.is_email_verified,
-      is_phone_verified: user.is_phone_verified,
-      is_locked: user.is_locked,
-      referer_id: user.referer_id,
-      balance,
-    };
-
-    return {
-      code: 200,
-      message: "success",
-      data: details,
-    };
   };
 
   public getRecipientDetails = async (username: string) => {

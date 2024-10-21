@@ -4,7 +4,7 @@ export {};
 const Queue = require("bull");
 import processJobs from "./processPayment";
 require("dotenv").config();
-const { redis } = require("../");
+import { redis } from "../";
 
 //redis config
 
