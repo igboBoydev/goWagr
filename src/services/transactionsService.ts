@@ -180,8 +180,8 @@ export class transactionsService extends BaseController {
 
     var next_page = currentPage + 1;
     var prev_page = currentPage - 1;
-    var nextP = `/api/jetwest/admin/all-scheduled-flights?pageNum=` + next_page;
-    var prevP = `/api/jetwest/admin/all-scheduled-flights?pageNum=` + prev_page;
+    var nextP = `/api/v1/transactions/transfers?pageNum?pageNum=` + next_page;
+    var prevP = `/api/v1/transactions/transfers?pageNum?pageNum=` + prev_page;
 
     return {
       code: 200,
@@ -191,10 +191,10 @@ export class transactionsService extends BaseController {
         data: allTransactions,
         per_page: pageSize,
         current_page: currentPage,
-        first_page_url: `/api/jetwest/admin/all-scheduled-flights?pageNum=1`,
+        first_page_url: `/api/v1/transactions/transfers?pageNum?pageNum=1`,
         next_page_url: nextP,
         prev_page_url: prevP,
-        path: `/api/jetwest/admin/all-scheduled-flights?pageNum=`,
+        path: `/api/v1/transactions/transfers?pageNum?pageNum=`,
         from: 1,
       },
     };
